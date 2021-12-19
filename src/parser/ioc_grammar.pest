@@ -1,94 +1,60 @@
-file = _{SOI ~ (file_line ~ NEWLINE | NEWLINE)* ~ file_line ~ EOI} // allow lines followed by a newline, empty lines, or line not ended with newline at the end of file
-//comments start with '#'
-COMMENT = _{ "#" ~ (LETTER | " " | "-")* ~ NEWLINE }
+// FILE STRUCTURE
+file = {SOI ~ (((line ~ NEWLINE) | NEWLINE)* ~ line) ~ EOI }
+line = _{ IGNORED | assignment | COMMENT }
 
-//the file is organized into lines with assigmnents, some we choose to ignore
-file_line = _{ ignored_assignment | assignment }
-assignment = _{ gpio_assignment | generic_assignment }
-generic_assignment = _{ component ~ "=" ~ value ~ (" - " ~ alias)?}
-gpio_assignment = _{ GPIO ~ "=" ~ gpio_value }
-ignored_assignment = { ignored_component ~ "=" ~ value ~ (" - " ~ alias)? }
+COMMENT = {"#" ~ ANY_CHAR* ~ NEWLINE}
+assignment = { component ~ "=" ~ value }
 
-// some elements have alias names defined by the user, the alias might appear later on the right
-alias = {free_identifier} 
+// IGNORED LINES (yet to be included in compilation)
+IGNORED = _{
+	("File" |
+    "SH" |
+    "FREERTOS" |
+    "NVIC" |
+    ("ADC" ~ ASCII_DIGIT) |
+    ("TIM" ~ ASCII_DIGIT) |
+    "KeepUserPlacement" |
+    "MxCube" |
+    "MxDb" |
+    "PinOutPanel" |
+    "ProjectManager" |
+    "VP_FREERTOS_VS_CMSIS_V1" |
+    ("VP_SYS_VS_tim" ~ ('0'..'9')+) |
+    "VP_SYS_VS_Systick" |
+    "board")
+    ~ ANY_CHAR*}
 
-///////////////////////////// RHS /////////////////////////////
+// LEFT HAND SIDE OF THE ASSIGNMENT
+component = { comp_name ~ alias? ~ prop? }
 
-//The following is a list of parsed components
-component = { DMA | MCU | Freertos | NVIC | PIN | PCC | ADC | CAN | RCC | SPI | GPIO | USART }
+comp_name = { IDENTIFIER }
 
-_subcomponent = _{ "." ~ subcomponent } // we want to ignore the dot in the token
-subcomponent = {free_identifier | '0'..'9'}
+alias = _{ ("\\ -\\ " | " - " | "-")? ~ alias_name }
+alias_name = { IDENTIFIER }
 
-DMA = ${"Dma" ~ _subcomponent* }
-MCU = ${"Mcu" ~ _subcomponent* }
-NVIC = ${"NVIC" ~ _subcomponent* }
-Freertos = ${"FREERTOS" ~ _subcomponent* }
-PIN = ${ pin_name ~ ("\\ -\\ " ~ alias)? ~ _subcomponent* }
-PCC = ${ "PCC" ~ _subcomponent* }
-ADC = ${ "ADC" ~ ('0'..'9')? ~ _subcomponent*}
-CAN = ${ "CAN" ~ ('0'..'9')? ~ _subcomponent*}
-RCC = ${ "RCC" ~ _subcomponent*}
-SPI = ${ "SPI" ~ ('0'..'9')? ~ _subcomponent*}
-GPIO = ${ "GPIO" ~ _subcomponent*}
-USART = ${ "USART" ~ ('0'..'9')? ~ _subcomponent* }
+prop = _{"." ~  property ~ prop?}
+property = {EXT_IDENT | ASCII_DIGIT}
 
-pin_name = _{"P" ~ port ~ pin_number ~ ( "-" ~ in_out_mark)? }
-port = { "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" } //might be an incorrect interpretation
-pin_number = { ('0'..'9'){1,2} }
-in_out_mark = { "OSC_IN" | "OSC_OUT" }
+// ALLOWED CHARACTERS AND WORDS
+ANY_CHAR = _{ LETTER | NUMBER | SYMBOL | PUNCTUATION | SPACE_SEPARATOR | "(" | ")" | "-" | "=" | "." } //excluding newline, allowed in comments and strings
+IDENTIFIER = _{ ASCII_ALPHA ~ IDENT_CHAR* }
+IDENT_CHAR = _{ ASCII_ALPHA | ASCII_DIGIT | "_" }
+EXT_IDENT = _{ASCII_ALPHA ~ EXTENDED_IDENT_CHAR*}
+EXTENDED_IDENT_CHAR = _{ ASCII_ALPHA | ASCII_DIGIT | "(" | ")" | "-" | "_"}
 
-//The following is a list of ignored components
-ignored_component = ${("File" | "SH" | "KeepUserPlacement" | "MxCube" | "MxDb" | "PinOutPanel" | "ProjectManager" | "VP_FREERTOS_VS_CMSIS_V1" | ("VP_SYS_VS_tim" ~ ('0'..'9')+ | "VP_SYS_VS_Systick" | "board") ~ (("." ~ free_identifier) | "." ~ '0'..'9')*}
-
-//Some identifiers (e.g. subcomponent names) can even start with a number
-free_identifier = _{ 
-		(
-        	('A'..'Z' | 'a'..'z') ~ ('A'..'Z' | 'a'..'z' | '0'..'9' | "_" | "-" | "(" | ")" | "#" | "\\" )*
-       	)
-        |
-        (
-        	'0'..'9' ~ ('A'..'Z' | 'a'..'z' | '0'..'9' | "_" | "-" | "(" | ")" | "#" | "\\" )+	
-        )
-    }
-
-///////////////////////////// LHS /////////////////////////////
-
-// Left hand side of the assignment
-
-// generic kinds of values
-value = ${ multi_val | single_val }
-
-single_val = _{ boolean | sorted | dep_version | word | numeric | none }
-
-boolean = {"true" | "false" }
-sorted = { '0'..'9'+ ~ "-" ~ word }
-dep_version = @{ fw_version | db_version | long_version }
-
-// dependency versions syntax
-version = @{ number ~ ("." ~ number)+ }
-db_version = @{"DB" ~ "." ~ version}
-long_version = @{number ~ ("." ~ number){2}}
-fw_version = @{"STM32Cube " ~ fw ~ " V" ~ version}
-fw = _{"FW_F" ~ '0'..'9'}
-
-multi_val = _{ params_list | list }
-
-list = ${ list_elem ~ (("," | ";") ~ list_elem)+ }
-list_elem = ${ special_list_elem | single_val }
-params_list = ${ param ~ (("\\:") ~ param)+} 
-param = _{ boolean | integer }
-
-numeric = { float_with_unit | float | hexadecimal | integer }
-number = _{ ASCII_DIGIT+ }
-hexadecimal = @{ "0x" ~ number }
-integer = @{ "-"? ~ number }
-float_with_unit = { float ~ " "* ~ unit }
-unit = _{ "KBits/s" }
-float = @{ number ~ "."  ~ number }
-word = @{ ASCII_ALPHA+ ~ ("_" | "-" | "." | '0'..'9' | ASCII_ALPHA | "#" | "\\" | "(" | ")" | "/")* }
-special_list_elem = _{ "As external" }
-none = @{""}
-
-// values allowed for specific components
-gpio_value = { "Group By Peripherals" | value }
+// RIGHT HAND SIDE OF THE ASSIGNMENT
+value = { mcu_name | mcu_family | number | version | fn_param_list | ident_list | boolean | sentence | ident | none }
+ident = { EXT_IDENT }
+number = _{ hex | float | int }
+int = { ASCII_DIGIT+ }
+float = { ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+}
+hex = { "0x" ~ (ASCII_DIGIT | ASCII_ALPHA)+}
+sentence = { (EXT_IDENT ~ " ")+ ~ EXT_IDENT}
+none = _{""}
+mcu_family = {^"STM32" ~ ASCII_ALPHA ~ ASCII_DIGIT{,3}}
+mcu_name = {&mcu_family ~ EXTENDED_IDENT_CHAR*}
+version = { ("DB")? ~ (ASCII_DIGIT+ ~ ".")+ ~ ASCII_DIGIT+}
+boolean = {^"true" | ^"false" }
+fn_param_list = { (fn_param_list_val ~ "\\:")+ ~  fn_param_list_val}
+fn_param_list_val = _{boolean | int}
+ident_list = { (ident ~ ",")+ ~ ident}
