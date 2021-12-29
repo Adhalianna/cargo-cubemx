@@ -1,8 +1,8 @@
 // FILE STRUCTURE
-file = {SOI ~ (((line ~ NEWLINE) | NEWLINE)* ~ line) ~ EOI }
-line = _{ IGNORED | assignment | COMMENT }
+file = _{SOI ~ (((line ~ NEWLINE) | NEWLINE)* ~ line) ~ EOI }
+line = _{ IGNORED | assignment | COMMENT | ""}
 
-COMMENT = {"#" ~ ANY_CHAR* ~ NEWLINE}
+COMMENT = _{"#" ~ ANY_CHAR* ~ NEWLINE}
 assignment = { component ~ "=" ~ value }
 
 // IGNORED LINES (yet to be included in compilation)
@@ -25,15 +25,15 @@ IGNORED = _{
     ~ ANY_CHAR*}
 
 // LEFT HAND SIDE OF THE ASSIGNMENT
-component = { comp_name ~ alias? ~ prop? }
+component = { comp_name ~ alias? ~ property? }
 
 comp_name = { IDENTIFIER }
 
 alias = _{ ("\\ -\\ " | " - " | "-")? ~ alias_name }
 alias_name = { IDENTIFIER }
 
-prop = _{"." ~  property ~ prop?}
-property = {EXT_IDENT | ASCII_DIGIT}
+property = {"." ~  prop_elem ~ ("." ~ prop_elem)*}
+prop_elem = {EXT_IDENT | ASCII_DIGIT}
 
 // ALLOWED CHARACTERS AND WORDS
 ANY_CHAR = _{ LETTER | NUMBER | SYMBOL | PUNCTUATION | SPACE_SEPARATOR | "(" | ")" | "-" | "=" | "." } //excluding newline, allowed in comments and strings
@@ -50,7 +50,7 @@ int = { ASCII_DIGIT+ }
 float = { ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+}
 hex = { "0x" ~ (ASCII_DIGIT | ASCII_ALPHA)+}
 sentence = { (EXT_IDENT ~ " ")+ ~ EXT_IDENT}
-none = _{""}
+none = {""}
 mcu_family = {^"STM32" ~ ASCII_ALPHA ~ ASCII_DIGIT{,3}}
 mcu_name = {&mcu_family ~ EXTENDED_IDENT_CHAR*}
 version = { ("DB")? ~ (ASCII_DIGIT+ ~ ".")+ ~ ASCII_DIGIT+}
