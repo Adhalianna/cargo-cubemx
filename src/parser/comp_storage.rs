@@ -1,3 +1,7 @@
+//! A module for storing the data read by the parser in a "dirty" form.
+//! It stores all the components (where, for example, all `Mcu` related settings
+//! create a single component) in vectors organized with ``CompStorage`` structure.
+
 use core::fmt;
 
 pub struct CompStorage{
@@ -32,9 +36,28 @@ impl CompStorage {
     }
 }
 
+impl fmt::Display for CompStorage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for e in &self.components {
+            write!(f, "{} ", e)?;
+        }
+        Ok(())
+    }
+}
+
 pub struct CompData{
     pub name: String,
     pub properties: Vec<Property>,
+}
+
+impl fmt::Display for CompData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: ", self.name)?;
+        for e in &self.properties {
+            write!(f, "{} ", e)?;
+        }
+        Ok(())
+    }
 }
 
 pub struct Property{
@@ -44,7 +67,7 @@ pub struct Property{
 
 impl fmt::Display for Property {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(name: ")?;
+        write!(f, "P(name: ")?;
         if self.elems.len() == 1 {
             write!(f, "{}", &self.elems[0])?;
         }
