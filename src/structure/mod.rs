@@ -2,6 +2,7 @@ pub mod mcu;
 pub mod dma;
 pub mod signal;
 
+
 use crate::parser::comp_storage::{CompStorage, Property};
 
 /// Enlists all elements of CubeMX configuration supported by the compiler.
@@ -9,7 +10,6 @@ use crate::parser::comp_storage::{CompStorage, Property};
 #[non_exhaustive]
 pub enum Component{
     MCU(mcu::Mcu),
-    RCC,
     DMA(dma::Dma),
     USART(signal::Usart),
     PIN(signal::Pin),
@@ -18,15 +18,15 @@ pub enum Component{
 
 pub fn structure_data(data: CompStorage) -> Vec<Component>{
     let all_components = Vec::<Component>::new();
-    for c in data.components {
-        match &c.name as &str {
-            "Dma" => {}
+    for (k, v) in data.components {
+        match &k as &str{
+            "Dma" => { structure_dma(v); }
             "Mcu" => {}
             "RCC" => {}
-            other @ _ => { if other.starts_with("P") && other.len() == 3 {
+            other @ _ => { if other.starts_with("P") && other.len() == 3 { // Pin
 
             }
-            if other.starts_with("USART"){
+            if other.starts_with("USART"){ // USART
 
             }
             }
@@ -36,5 +36,6 @@ pub fn structure_data(data: CompStorage) -> Vec<Component>{
 }
 
 fn structure_dma(data: Vec<Property>) -> Vec<dma::Dma> {
-    
+    let dmas = Vec::<dma::Dma>::new();
+    dmas
 }

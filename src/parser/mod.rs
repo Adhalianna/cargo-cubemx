@@ -25,7 +25,7 @@ pub fn parse_string(input: &str) -> Result<CompStorage, PestError<Rule>> {
         match pair.as_rule() {
             Rule::assignment => {
                 let (name, prop) = assignment_to_data(pair);
-                store.add_or_extend(name.as_str(), prop.unwrap());
+                store.add_or_extend(&name.to_string(), prop.unwrap());
             }
             _ => {}
         }

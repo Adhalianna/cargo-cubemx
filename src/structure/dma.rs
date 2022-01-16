@@ -14,7 +14,7 @@ impl Dma{
         Self {
             dma_instace: dma.to_string(),
             stream_instance: stream.to_string(),
-            signal,
+            signal: signal.to_string(),
             channel: channel.to_string(),
             priority,
             fifo_mode: false,

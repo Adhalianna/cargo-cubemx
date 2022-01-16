@@ -3,34 +3,25 @@
 //! create a single component) in vectors organized with ``CompStorage`` structure.
 
 use core::fmt;
+use std::collections::{HashMap, hash_map::Entry};
 
 pub struct CompStorage{
-    pub components: Vec<CompData>
+    pub components: HashMap<String, Vec<Property>>
 }
 
 impl CompStorage {
     pub fn new() -> Self {
         Self {
-            components: Vec::<CompData>::new()
+            components: HashMap::new()
         }
-    }
-    fn find_component(&mut self, comp_name: &str) -> Option<&mut CompData> {
-        for c in &mut self.components {
-            if c.name.eq(comp_name) { return Some(c); }
-        }
-        None
     }
     pub fn add_or_extend(&mut self, comp_name: &str, prop: Property) {
-        let found_duplicate = self.find_component(comp_name);
-        match found_duplicate {
-            Some(c) =>{
-                c.properties.push(prop);
+        match self.components.entry(comp_name.to_string()) {
+            Entry::Occupied(mut c) =>{
+                (*c.get_mut()).push(prop);
             }
-            None => {
-                self.components.push(CompData {
-                    name: comp_name.to_string(),
-                    properties: vec![prop],
-                })
+            Entry::Vacant(c) => {
+                c.insert(vec![prop]);
             }
         }
     }
@@ -38,23 +29,11 @@ impl CompStorage {
 
 impl fmt::Display for CompStorage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for e in &self.components {
-            write!(f, "{} ", e)?;
-        }
-        Ok(())
-    }
-}
-
-pub struct CompData{
-    pub name: String,
-    pub properties: Vec<Property>,
-}
-
-impl fmt::Display for CompData {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: ", self.name)?;
-        for e in &self.properties {
-            write!(f, "{} ", e)?;
+        for (k, v) in &self.components {
+            write!(f, "{}: ", k)?;
+            for p in v {
+                write!(f, "{} ", p)?;
+            }
         }
         Ok(())
     }
