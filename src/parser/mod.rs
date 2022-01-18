@@ -3,7 +3,7 @@ use pest::{Parser, error::Error as PestError, iterators::Pair};
 use pest_derive::*;
 
 pub mod comp_storage;
-use self::comp_storage::{CompStorage, Property};
+use self::comp_storage::{Components};
 
 /// Parser generated from Pest's PEG.
 /// More information can be found in Pest's docs
@@ -11,21 +11,20 @@ use self::comp_storage::{CompStorage, Property};
 #[grammar = "parser/ioc_grammar.pest"]
 struct IOCParser;
 
-//TODO: change return to dynamic error or restructure the program - io errors might
-//occur while reading a file.
-pub fn parse(path: &Path) -> Result<CompStorage, PestError<Rule>> {
+//TODO: remove the unwrap at file reading and change the return type
+pub fn parse(path: &Path) -> Result<Components, PestError<Rule>> {
     let file = read_to_string(path).unwrap();
     parse_string(file.as_str())
 }
 
-pub fn parse_string(input: &str) -> Result<CompStorage, PestError<Rule>> {
+pub fn parse_string(input: &str) -> Result<Components, PestError<Rule>> {
     let pairs =  IOCParser::parse(Rule::file, input)?;
-    let mut store = CompStorage::new();
+    let mut store = Components::new();
     for pair in pairs {
         match pair.as_rule() {
             Rule::assignment => {
-                let (name, prop) = assignment_to_data(pair);
-                store.add_or_extend(&name.to_string(), prop.unwrap());
+                let (name, property, value) = decompose_assignment(pair);
+                store.add_or_extend(&name, &property, value);
             }
             _ => {}
         }
@@ -33,29 +32,22 @@ pub fn parse_string(input: &str) -> Result<CompStorage, PestError<Rule>> {
     Ok(store)
 }
 
-fn assignment_to_data(assignment: Pair<Rule>) -> (String, Option<Property>) {
+fn decompose_assignment(assignment: Pair<Rule>) -> (String, String, String) {
+    // Decompose parsed data
     let mut assignment = assignment.into_inner();
     let mut component_elems = assignment.nth(0).unwrap().into_inner();
-    let value = assignment.next().unwrap();
-
+    // Save property value
+    let value = assignment.next().unwrap().as_str().to_string();
+    // Get component name
     let comp_name = component_elems.next().unwrap().as_str().to_string();
-
-    // Decompose pairs into elements of each property
+    // Decompose pair into a property string
     let property = component_elems.next();
-    let mut prop_elems = Vec::<String>::new();
-    if let Some(prop) = property {
-        let props = prop.into_inner();
-        for p in props {
-            if p.as_rule() == Rule::prop_elem {
-                let elem = p.as_str().to_string();
-                prop_elems.push(elem);
-            }
-        }
-        let prop = Property {
-            elems: prop_elems,
-            value: value.as_str().to_string(),
-        };
-        return (comp_name, Some(prop));
+    let property_string;
+    if let Some(property) = property {
+        property_string = property.as_str().to_string();
     }
-    (comp_name, None)
+    else {
+        property_string = "".to_string();
+    }
+    (comp_name, property_string, value)
 }
