@@ -1,29 +1,26 @@
-use std::collections::{HashMap, hash_map::Entry};
-use patricia_tree::{PatriciaMap};
+use std::collections::{hash_map::Entry, HashMap};
 
-pub type Properties = PatriciaMap<String>;  
 #[derive(Debug)]
-pub struct Components{
-    pub components: HashMap<String, Properties>
+pub struct Components {
+    pub components: HashMap<String, HashMap<String, String>>,
 }
 
 impl Components {
     pub fn new() -> Self {
         Self {
-            components: HashMap::new()
+            components: HashMap::new(),
         }
     }
-    pub fn add_or_extend(&mut self, comp_name: &str, property: &str, value: String) {
+    pub fn add_or_extend(&mut self, comp_name: String, property: String, value: String) {
         match self.components.entry(comp_name.to_string()) {
-            Entry::Occupied(mut c) =>{
+            Entry::Occupied(mut c) => {
                 (*c.get_mut()).insert(property, value);
             }
             Entry::Vacant(c) => {
-                let mut p = Properties::new();
-                p.insert(property, value);
-                c.insert(p);
+                let mut m = HashMap::<String, String>::new();
+                m.insert(property, value);
+                c.insert(m);
             }
         }
     }
 }
-

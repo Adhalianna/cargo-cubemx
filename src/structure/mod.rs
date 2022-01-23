@@ -1,41 +1,65 @@
-pub mod mcu;
 pub mod dma;
+pub mod mcu;
 pub mod signal;
+pub mod rcc;
+
+use enum_as_inner::EnumAsInner;
+use std::collections::HashMap;
+
+use crate::parser::comp_storage::Components;
+
+use self::signal::Signal;
 
 
-use crate::parser::comp_storage::{CompStorage, Property};
-
-/// Enlists all elements of CubeMX configuration supported by the compiler.
-/// Components not supported at the moment by the compiler are enumerated as "Ignored".
+#[derive(Debug, EnumAsInner, Clone)]
 #[non_exhaustive]
-pub enum Component{
+pub enum Component {
     MCU(mcu::Mcu),
     DMA(dma::Dma),
-    USART(signal::Usart),
+    SIGNAL(signal::Signal),
     PIN(signal::Pin),
+    RCC(rcc::Rcc),
     Ignored,
 }
 
-pub fn structure_data(data: CompStorage) -> Vec<Component>{
-    let all_components = Vec::<Component>::new();
-    for (k, v) in data.components {
-        match &k as &str{
-            "Dma" => { structure_dma(v); }
-            "Mcu" => {}
+pub fn structure_data(data: Components) -> HashMap<String, Component> {
+    let mut all_components = HashMap::<String, Component>::new();
+    for (component_name, properties) in data.components {
+        match &component_name as &str {
+            "Mcu" => {
+                let mcu = mcu::create_mcu(properties)
+                    .expect("An information about MCU family was missing in the configuration.");
+                all_components.insert(component_name, Component::MCU(mcu));
+            }
+            "Dma" => {
+                dma::create_dmas(properties)
+                    .into_iter()
+                    .map(|d| ((&d).dma_instance().to_owned(), Component::DMA(d)))
+                    .for_each(|(k, v)| {
+                        all_components.insert(k.to_string(), v);
+                    });
+            }
             "RCC" => {}
-            other @ _ => { if other.starts_with("P") && other.len() == 3 { // Pin
-
-            }
-            if other.starts_with("USART"){ // USART
-
-            }
+            "GPIO" => {}
+            other @ _ => {
+                match other.chars().next().unwrap() {
+                    'P' => {
+                        //PIN
+                        let p = signal::create_pin(&component_name, properties);
+                        all_components.insert(component_name, Component::PIN(p));
+                    }
+                    'U' => {
+                        //USART
+                        let u = signal::create_usart(&component_name, properties);
+                        all_components.insert(component_name, Component::SIGNAL(Signal::USART(u)));
+                    }
+                    _ => {
+                        panic!("An unexpected component {:?} met!", &component_name);
+                        //TODO: Expand the message
+                    }
+                }
             }
         }
     }
     all_components
-}
-
-fn structure_dma(data: Vec<Property>) -> Vec<dma::Dma> {
-    let dmas = Vec::<dma::Dma>::new();
-    dmas
 }

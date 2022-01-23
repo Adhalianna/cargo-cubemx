@@ -33,7 +33,7 @@ alias = _{ ("\\ -\\ " | " - " | "-")? ~ alias_name }
 alias_name = { IDENTIFIER }
 
 property = {"." ~  prop_elem ~ ("." ~ prop_elem)*}
-prop_elem = {EXT_IDENT | ASCII_DIGIT}
+prop_elem = _{EXT_IDENT | ASCII_DIGIT}
 
 // ALLOWED CHARACTERS AND WORDS
 ANY_CHAR = _{ LETTER | NUMBER | SYMBOL | PUNCTUATION | SPACE_SEPARATOR | "(" | ")" | "-" | "=" | "." } //excluding newline, allowed in comments and strings

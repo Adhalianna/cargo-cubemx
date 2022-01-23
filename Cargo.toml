@@ -9,5 +9,11 @@ edition = "2021"
 codegen = "*"
 pest = "*"
 pest_derive = "*"
-patricia_tree = "*"
-typed-builder = "*"
+derive_builder = "*"
+simple-error = "*"
+derive-getters = "*"
+enum-as-inner = "*"
+# rustfmt-core = "*"
+
+[dev-dependencies]
+stm32f4xx-hal = "*"
