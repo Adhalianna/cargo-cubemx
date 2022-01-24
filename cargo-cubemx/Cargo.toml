@@ -1,0 +1,19 @@
+[package]
+name = "cargo-cubemx"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+codegen = "*"
+pest = "*"
+pest_derive = "*"
+derive_builder = "*"
+simple-error = "*"
+derive-getters = "*"
+enum-as-inner = "*"
+# rustfmt-core = "*"
+
+[dev-dependencies]
+stm32f4xx-hal = "*"

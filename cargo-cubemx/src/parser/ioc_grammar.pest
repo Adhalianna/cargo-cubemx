@@ -1,0 +1,65 @@
+// FILE STRUCTURE
+file = _{SOI ~ (((line ~ NEWLINE) | NEWLINE)* ~ line) ~ EOI }
+line = _{ IGNORED | assignment | COMMENT | ""}
+
+COMMENT = _{"#" ~ ANY_CHAR* ~ NEWLINE}
+assignment = { component ~ "=" ~ value }
+
+// IGNORED LINES (yet to be included in compilation)
+IGNORED = _{
+	("File" |
+    "SH" |
+    "FREERTOS" |
+    "NVIC" |
+    ("ADC" ~ ASCII_DIGIT) |
+    ("TIM" ~ ASCII_DIGIT) |
+    ("SPI" ~ ASCII_DIGIT) |
+    ("CAN" ~ ASCII_DIGIT) |
+    "KeepUserPlacement" |
+    "MxCube" |
+    "MxDb" |
+    "PinOutPanel" |
+    "SDIO" |
+    "ProjectManager" |
+    "VP_FREERTOS_VS_CMSIS_V1" |
+    ("VP_SYS_VS_tim" ~ ('0'..'9')+) |
+    "VP_SYS_VS_Systick" |
+    "board")
+    ~ ANY_CHAR*}
+
+// LEFT HAND SIDE OF THE ASSIGNMENT
+component = { comp_name ~ alias? ~ property? }
+
+comp_name = { EXT_IDENT }
+
+alias = _{ ("\\ -\\ " | " - " | "-")? ~ alias_name }
+alias_name = _{ IDENTIFIER }
+
+property = {"." ~  prop_elem ~ ("." ~ prop_elem)*}
+prop_elem = _{EXTENDED_IDENT_CHAR+}
+
+// ALLOWED CHARACTERS AND WORDS
+ANY_CHAR = _{ LETTER | NUMBER | SYMBOL | PUNCTUATION | SPACE_SEPARATOR | "(" | ")" | "-" | "=" | "." } //excluding newline, allowed in comments and strings
+IDENTIFIER = _{ ASCII_ALPHA ~ IDENT_CHAR* }
+IDENT_CHAR = _{ ASCII_ALPHA | ASCII_DIGIT | "_" }
+EXT_IDENT = _{ASCII_ALPHA ~ EXTENDED_IDENT_CHAR*}
+EXT_IDENT_STARTING_NUM = _{ASCII_DIGIT+ ~ EXTENDED_IDENT_CHAR* | EXT_IDENT }
+EXTENDED_IDENT_CHAR = _{ ASCII_ALPHA | ASCII_DIGIT | "(" | ")" | "-" | "_" | "/"}
+
+// RIGHT HAND SIDE OF THE ASSIGNMENT
+value = { ident_list | mcu_name | mcu_family | numerical | version | fn_param_list | boolean | sentence | ident | none }
+ident = { EXT_IDENT_STARTING_NUM }
+numerical = _{ hex | real_with_unit | float | int }
+int = { ASCII_DIGIT+ }
+real_with_unit = {float ~ " "* ~ ("MBits/s" | "KBits/s") }
+float = { ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+}
+hex = { "0x" ~ (ASCII_DIGIT | ASCII_ALPHA)+}
+sentence = { (EXT_IDENT ~ " ")+ ~ EXT_IDENT}
+none = {""}
+mcu_family = {^"STM32" ~ ASCII_ALPHA ~ ASCII_DIGIT{,3}}
+mcu_name = {&mcu_family ~ EXTENDED_IDENT_CHAR*}
+version = { ("DB")? ~ (ASCII_DIGIT+ ~ ".")+ ~ ASCII_DIGIT+}
+boolean = {^"true" | ^"false" }
+fn_param_list = { (fn_param_list_val ~ "\\:")+ ~  fn_param_list_val}
+fn_param_list_val = _{boolean | int}
+ident_list = { (ident ~ ",")+ ~ ident}
