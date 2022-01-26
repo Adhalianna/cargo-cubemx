@@ -1,0 +1,38 @@
+<input> -> (<comment> | <assignment>) '\n')*
+<comment> -> '#' <any_char>
+<assignment> -> <component>  '=' <value>
+
+<component> -> <comp_name>  <alias>?  <property>? }
+
+<comp_name> -> <ext_ident> 
+
+<alias> -> ("\\ -\\ " | " - " | "-")? <alias_name>
+<alias_name> -> <identifier>
+
+<property> -> "." <prop_elem>  ("." <prop_elem>)*
+<prop_elem> -> <extended_ident_char>+
+
+<any_char> = <letter> | <number> | <symbol> | <punctuation> | <space_separator> | "(" | ")" | "-" | "=" | "."
+<identifier> = <ASCII_ALPHA> <ident_char>* 
+<ident_char> = <ASCII_ALPHA> | <ASCII_DIGIT> | "_"
+<ext_ident> = <ASCII_ALPHA>  <extended_ident_char>*}
+<extended_ident_starting_num> = <ASCII_DIGIT>+  <extended_ident_char>*
+<extended_ident_char> = <ASCII_ALPHA> | <ASCII_DIGIT> | "(" | ")" | "-" | "_" | "/"
+
+
+<value> = <ident_list> | <mcu_name> | <mcu_family> | <numerical> | <version> | <fn_param_list> | <boolean> | <sentence> | <ident> | <none>
+<ident> = <extended_ident_starting_num>
+<numerical> = <hex> | <real_with_unit> | <float> | <int>
+<int> = <ASCII_DIGIT>+
+<real_with_unit> = <float>  " "*  ("MBits/s" | "KBits/s")
+<float> = <ASCII_DIGIT>+ "." <ASCII_DIGIT>+
+<hex> = "0x" (<ASCII_DIGIT> | <ASCII_ALPHA>)+
+<sentence> = (<ext_ident> " ")+ ~ <ext_ident>
+<none> = ""
+<mcu_family> = "STM32" <ASCII_ALPHA> <ASCII_DIGIT>{,3}
+<mcu_name> = mcu_family <extended_ident_char>*
+<version> = "DB"?  (<ASCII_DIGIT>+ ".")+  <ASCII_DIGIT>+
+<boolean> = "true" | "false"
+<fn_param_list> = (<fn_param_list_val> "\\:")+  <fn_param_list_val>
+<fn_param_list_val> = <boolean> | <int>
+<ident_list> = (<ident> ",")+ <ident>
