@@ -104,8 +104,24 @@ fn dma_func(d: &Dma) -> Function {
         .line("config")
         .line(")");
 
-    func.arg("per", format!("impl dma::traits::DMASet<StreamX<{}>, {}> + dma::traits::PeriAddress", which_dma, direction_type_str));
-    func.ret(format!("Transfer<StreamX<{}>, dyn DMASet<StreamX<{}>, {}> + PeriAddress, {}, {}>", which_dma, which_dma, direction_type_str, direction_type_str, which_stream));
+    match d.direction() {
+        DmaDirection::MemoryToMemory => {
+            func.generic("BUF")
+                .generic("TRANSFERED")
+                .generic("const C1: usize")
+                .generic("const C2: usize")
+                .arg("per", format!("impl dma::traits::DMASet<dma::StreamX<pac::{}, C1>, dma::{}<TRANSFERED>, C2> + dma::traits::PeriAddress", which_dma, direction_type_str))
+                .ret(format!("dma::Transfer<dma::StreamX<pac::{}, C1>, dyn dma::traits::DMASet<dma::StreamX<pac::{}, C1>, BUF, dma::{}<TRANSFERED>, C2> + dma::traits::PeriAddress, {}, {}>", which_dma, which_dma, direction_type_str, direction_type_str, which_stream));
+        }
+        _ => {
+            func.generic("BUF")
+                .generic("const C1: usize")
+                .generic("const C2: usize")
+                .arg("per", format!("impl dma::traits::DMASet<dma::StreamX<pac::{}, C1>, dma::{}, C2> + dma::traits::PeriAddress", which_dma, direction_type_str))
+                .ret(format!("dma::Transfer<dma::StreamX<pac::{}, C1>, dyn dma::traits::DMASet<dma::StreamX<pac::{}, C1>, BUF, dma::{}, C2> + dma::traits::PeriAddress, {}, {}>", which_dma, which_dma, direction_type_str, direction_type_str, which_stream));
+        }
+    }
+    
 
     func
 }
@@ -117,10 +133,10 @@ fn signal_func(p: &Pin, s: &Signal) -> Function {
             func.arg("clocks", "rcc::Clocks");
             let rx_tx;
             if p.signal().ends_with("_RX") {
-                func.ret("serial::Rx");
+                func.ret(format!("serial::Rx<pac::{}>", u.name()));
                 rx_tx = "rx"
             } else {
-                func.ret("serial::Tx");
+                func.ret(format!("serial::Tx<pac::{}>", u.name));
                 rx_tx = "tx"
             }
             func.line("let dp = pac::Peripherals::take().unwrap();");
@@ -133,7 +149,7 @@ fn signal_func(p: &Pin, s: &Signal) -> Function {
                 "let {} = gpio.{}.into_alternate();",
                 pin_var, pin_var
             ))
-            .line("let config = serial::config::default()")
+            .line("let config = serial::config::Config::default()")
             .line(format!(".baudrate({})", u.baudrate()))
             .line(";");
 

@@ -11,7 +11,7 @@ pub fn generate_code(data: &HashMap<String, Component>) -> String {
     let mcu = data.get("Mcu").unwrap().as_mcu().unwrap();
     let underlying_hal = mcu.family_string().to_owned().add("xx_hal");
     scope.import(&underlying_hal, "*");
-    scope.import("embedded-dma", "*");
+    scope.import("embedded_dma", "*");
     match mcu.family() {
         McuFamily::F4 => f4::generate_code(data, &mut scope),
         _ => {
