@@ -2,3 +2,4 @@
 cargo-cubemx/target
 cargo-cubemx-test/target
 Cargo.lock
+target

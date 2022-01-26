@@ -37,9 +37,7 @@ pub fn generate_code(data: &HashMap<String, Component>, scope: &mut Scope) {
 fn dma_func(d: &Dma) -> Function {
     let mut func = codegen::Function::new(&"init_".to_string().add(d.dma_instance()));
     func.doc("TODO")
-        .arg("per", "dma::traits::DMASet + dma::traits::PeriAddress")
-        .arg("buf", "embedded_dma::StaticWriteBuffer")
-        .ret("dma::Transfer")
+        .arg("buf", "impl embedded_dma::StaticWriteBuffer")
         .vis("pub");
 
     func.line("let dp = pac::Peripherals::take().unwrap();");
@@ -83,15 +81,19 @@ fn dma_func(d: &Dma) -> Function {
 
     func.line(";");
 
+    let direction_type_str;
     match d.direction() {
         DmaDirection::PeripheralToMemory => {
             func.line("dma::Transfer::init_peripheral_to_memory(");
+            direction_type_str = "PeripheralToMemory";
         }
         DmaDirection::MemoryToPeripheral => {
             func.line("dma::Transfer::init_memory_to_peripheral(");
+            direction_type_str = "MemoryToPeripheral";
         }
         DmaDirection::MemoryToMemory => {
             func.line("dma::Transfer::init_memory_to_memory(");
+            direction_type_str = "MemoryToMemory";
         }
     };
 
@@ -102,6 +104,9 @@ fn dma_func(d: &Dma) -> Function {
         .line("config")
         .line(")");
 
+    func.arg("per", format!("impl dma::traits::DMASet<StreamX<{}>, {}> + dma::traits::PeriAddress", which_dma, direction_type_str));
+    func.ret(format!("Transfer<StreamX<{}>, dyn DMASet<StreamX<{}>, {}> + PeriAddress, {}, {}>", which_dma, which_dma, direction_type_str, direction_type_str, which_stream));
+
     func
 }
 
@@ -109,7 +114,7 @@ fn signal_func(p: &Pin, s: &Signal) -> Function {
     let mut func = codegen::Function::new(&"init_".to_string().add(p.signal()));
     match s {
         Signal::USART(u) => {
-            func.arg("cloks", "rcc::Clocks");
+            func.arg("clocks", "rcc::Clocks");
             let rx_tx;
             if p.signal().ends_with("_RX") {
                 func.ret("serial::Rx");
@@ -118,7 +123,7 @@ fn signal_func(p: &Pin, s: &Signal) -> Function {
                 func.ret("serial::Tx");
                 rx_tx = "tx"
             }
-            func.line("let dp = pac::Peripheral::take().unwrap();");
+            func.line("let dp = pac::Peripherals::take().unwrap();");
             unsafe {
                 let gpio_char: &str = p.name().get_unchecked(1..2);
                 func.line(format!("let mut gpio = dp.GPIO{}.split();", gpio_char));
@@ -136,7 +141,7 @@ fn signal_func(p: &Pin, s: &Signal) -> Function {
                 .line(format!("dp.{},", u.name()))
                 .line(format!("{},", pin_var))
                 .line("config,")
-                .line("clocks")
+                .line("&clocks")
                 .line(")");
 
             func.doc("TODO");

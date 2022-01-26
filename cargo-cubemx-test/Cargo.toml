@@ -6,3 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+cortex-m = "*"
+cortex-m-rt = "*"
+cortex-m-semihosting = "*"
+embedded-hal = "*"
+embedded-dma = "*"
+panic-halt = "*"
+stm32f4xx-hal = {version = "*", features = ["stm32f446"]}
